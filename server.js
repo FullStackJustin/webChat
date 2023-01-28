@@ -25,6 +25,7 @@ io.on('connection', (socket) => {
     socket.on('time', (data) => {
         socket.broadcast.emit("time_received", data)
     })
+    
 })
 httpServer.listen(3000, () => {
     console.log('Listening on port 3000')
