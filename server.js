@@ -22,8 +22,14 @@ io.on('connection', (socket) => {
     socket.on("message", (data) => {
         socket.broadcast.emit("receive_message", data)
     })
-    socket.on('time', (data) => {
-        socket.broadcast.emit("time_received", data)
+    socket.on('join', (data) => {
+        socket.join(data)
+        console.log(socket.adapter.rooms)
+        console.log(data)
+    })
+    socket.on("send_msg", (data) => {
+        console.log(data)
+        socket.to(data.room).emit("incoming_message", data);
     })
     
 })
