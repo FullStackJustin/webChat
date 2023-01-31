@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 app.use(cors());
 const io = new Server(httpServer,{
+    autoConnect: false,
     cors:{
         origin:'http://localhost:3001',
         methods: ["GET", "POST"]
@@ -14,23 +15,29 @@ const io = new Server(httpServer,{
 app.get('/', (req, res) => {
     res.send('<p>hola</p>')
 })
-io.on('connection', (socket) => {
+io.on('connect', (socket) => {
     console.log("user connected:" + socket.id)
     socket.on('disconnect', ()=>{
-        console.log('User disconnected')
+        console.log(socket.id + ': disconnected')
+    })
+    socket.on("leave-room", (data) => {
+        socket.disconnect()
+        socket.to(data).emit("User disconnected")
+        console.log(data)
     })
     socket.on("message", (data) => {
         socket.broadcast.emit("receive_message", data)
+        console.log(data)
     })
-    socket.on('join', (data) => {
-        socket.join(data)
+    socket.on('join-room', (data) => {
+        socket.join(data.room)
         console.log(socket.adapter.rooms)
         console.log(data)
     })
     socket.on("send_msg", (data) => {
-        console.log(data)
-        socket.to(data.room).emit("incoming_message", data);
+        socket.to(data.room).emit("receive_msg", data);
     })
+
     
 })
 httpServer.listen(3000, () => {
