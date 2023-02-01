@@ -5,10 +5,10 @@ const httpServer = http.createServer(app);
 const { Server } = require('socket.io');
 const cors = require('cors');
 app.use(cors());
-const io = new Server(httpServer,{
+const io = new Server(httpServer, {
     autoConnect: false,
-    cors:{
-        origin:'http://localhost:3001',
+    cors: {
+        origin: 'http://localhost:3000',
         methods: ["GET", "POST"]
     }
 })
@@ -17,29 +17,59 @@ app.get('/', (req, res) => {
 })
 io.on('connect', (socket) => {
     console.log("user connected:" + socket.id)
-    socket.on('disconnect', ()=>{
-        console.log(socket.id + ': disconnected')
-    })
-    socket.on("leave-room", (data) => {
-        socket.disconnect()
-        socket.to(data).emit("User disconnected")
-        console.log(data)
-    })
-    socket.on("message", (data) => {
-        socket.broadcast.emit("receive_message", data)
-        console.log(data)
-    })
-    socket.on('join-room', (data) => {
-        socket.join(data.room)
-        console.log(socket.adapter.rooms)
-        console.log(data)
-    })
-    socket.on("send_msg", (data) => {
-        socket.to(data.room).emit("receive_msg", data);
-    })
 
+    //User disconnected
+    try {
+        socket.on('disconnect', () => {
+            console.log(socket.id + ': disconnected')
+        })
+    } catch (err) {
+        console.log("disconnect error", err)
+    }
+
+    //leave a room
+    try {
+        socket.on("leave-room", (data) => {
+            socket.leave(data)
+            socket.to(data).emit("User disconnected")
+            console.log(data)
+        })
+    } catch (err) {
+        console.log("leave room error:", err)
+    }
+
+    //send message to general chat room
+    try {
+        socket.on("message", (data) => {
+            socket.broadcast.emit("receive_message", data)
+            console.log(data)
+        })
+    } catch (err) {
+        console.log("main chat message error:", err)
+    }
+
+    //Join a room
+    try {
+        socket.on('join-room', (data) => {
+            socket.join(data.room)
+            console.log(socket.adapter.rooms)
+            console.log(data)
+        })
+    } catch (err) {
+        console.log("Joining room error:", err)
+    }
     
+    // send message to joined room
+    try {
+        socket.on("send_msg", (data) => {
+            socket.to(data.room).emit("receive_msg", data);
+        })
+    } catch (err) {
+        console.log("private room message error:", err)
+    }
+
+
 })
-httpServer.listen(3000, () => {
-    console.log('Listening on port 3000')
+httpServer.listen(8000, () => {
+    console.log('Listening on port 8000')
 })
