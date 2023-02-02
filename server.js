@@ -30,9 +30,8 @@ io.on('connect', (socket) => {
     //leave a room
     try {
         socket.on("leave-room", (data) => {
-            socket.leave(data)
+            socket.disconnect()
             socket.to(data).emit("User disconnected")
-            console.log(data)
         })
     } catch (err) {
         console.log("leave room error:", err)
@@ -42,7 +41,6 @@ io.on('connect', (socket) => {
     try {
         socket.on("message", (data) => {
             socket.broadcast.emit("receive_message", data)
-            console.log(data)
         })
     } catch (err) {
         console.log("main chat message error:", err)
@@ -50,10 +48,8 @@ io.on('connect', (socket) => {
 
     //Join a room
     try {
-        socket.on('join-room', (data) => {
+        socket.on('join-room', async (data) => {
             socket.join(data.room)
-            console.log(socket.adapter.rooms)
-            console.log(data)
         })
     } catch (err) {
         console.log("Joining room error:", err)
@@ -66,6 +62,18 @@ io.on('connect', (socket) => {
         })
     } catch (err) {
         console.log("private room message error:", err)
+    }
+
+    //Get connected users
+    const connectedUsers = [];
+    try{
+        socket.on("getConnectedUsers", (data) => {
+            connectedUsers.push(data)
+            console.log(data, connectedUsers)
+            socket.emit("connectedUsers", connectedUsers);
+        })
+    } catch(err) {
+        console.log("Get all connections error:" + err)
     }
 
 
