@@ -15,6 +15,8 @@ const io = new Server(httpServer, {
 app.get('/', (req, res) => {
     res.send('<p>hola</p>')
 })
+var connectedUsers = [];
+
 io.on('connect', (socket) => {
     console.log("user connected:" + socket.id)
 
@@ -31,7 +33,16 @@ io.on('connect', (socket) => {
     try {
         socket.on("leave-room", (data) => {
             socket.disconnect()
-            socket.to(data).emit("User disconnected")
+            socket.to(data.room).emit("User disconnected")
+            var i;
+            for (i = 0; i < connectedUsers.length; i++) {
+                const listOfUsers = connectedUsers[i];
+                if (data.user === listOfUsers) {
+                    connectedUsers.splice(i, 1);
+                    break;
+                }
+            }
+            io.to(data.room).emit("updateUserlog", connectedUsers);
         })
     } catch (err) {
         console.log("leave room error:", err)
@@ -50,11 +61,13 @@ io.on('connect', (socket) => {
     try {
         socket.on('join-room', async (data) => {
             socket.join(data.room)
+            connectedUsers.push(data.user)
+            io.to(data.room).emit("updateUserlog", connectedUsers);
         })
     } catch (err) {
         console.log("Joining room error:", err)
     }
-    
+
     // send message to joined room
     try {
         socket.on("send_msg", (data) => {
@@ -65,14 +78,13 @@ io.on('connect', (socket) => {
     }
 
     //Get connected users
-    const connectedUsers = [];
-    try{
+    try {
         socket.on("getConnectedUsers", (data) => {
-            connectedUsers.push(data)
+            // connectedUsers.push(data)
             console.log(data, connectedUsers)
             socket.emit("connectedUsers", connectedUsers);
         })
-    } catch(err) {
+    } catch (err) {
         console.log("Get all connections error:" + err)
     }
 
