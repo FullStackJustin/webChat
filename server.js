@@ -15,8 +15,8 @@ const io = new Server(httpServer, {
 app.get('/', (req, res) => {
     res.send('<p>hola</p>')
 })
-var connectedUsers = [];
 
+var connectedUsers = [];
 io.on('connect', (socket) => {
     console.log("user connected:" + socket.id)
 
