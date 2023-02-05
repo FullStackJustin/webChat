@@ -24,9 +24,31 @@ io.on('connect', (socket) => {
     try {
         socket.on('disconnect', () => {
             console.log(socket.id + ': disconnected')
+            socket.disconnect()
         })
     } catch (err) {
         console.log("disconnect error", err)
+    }
+
+    //Join a room
+    try {
+        socket.on('join-room', (data) => {
+            socket.join(data.room)
+            if (!connectedUsers[data.room]) {
+                console.log(data, connectedUsers, "no users w that room")
+                connectedUsers[data.room] = [];
+            }
+            // Check if the user is already in the room
+            let userCount = connectedUsers[data.room].filter(user => user === data.user).length;
+            if (userCount > 0) {
+                // If the user is already in the room, add a number to the user name
+                data.user = `${data.user}${userCount + 1}`;
+            }
+            connectedUsers[data.room].push(data.user)
+            io.to(data.room).emit("updateUserlog", connectedUsers[data.room]);
+        })
+    } catch (err) {
+        console.log("Joining room error:", err)
     }
 
     //leave a room
@@ -34,15 +56,18 @@ io.on('connect', (socket) => {
         socket.on("leave-room", (data) => {
             socket.disconnect()
             socket.to(data.room).emit("User disconnected")
+            if (!connectedUsers[data.room]) {
+                connectedUsers[data.room] = [];
+            }
             var i;
-            for (i = 0; i < connectedUsers.length; i++) {
-                const listOfUsers = connectedUsers[i];
+            for (i = 0; i < connectedUsers[data.room].length; i++) {
+                const listOfUsers = connectedUsers[data.room][i];
                 if (data.user === listOfUsers) {
-                    connectedUsers.splice(i, 1);
+                    connectedUsers[data.room].splice(i, 1);
                     break;
                 }
             }
-            io.to(data.room).emit("updateUserlog", connectedUsers);
+            io.to(data.room).emit("updateUserlog", connectedUsers[data.room]);
         })
     } catch (err) {
         console.log("leave room error:", err)
@@ -57,16 +82,6 @@ io.on('connect', (socket) => {
         console.log("main chat message error:", err)
     }
 
-    //Join a room
-    try {
-        socket.on('join-room', async (data) => {
-            socket.join(data.room)
-            connectedUsers.push(data.user)
-            io.to(data.room).emit("updateUserlog", connectedUsers);
-        })
-    } catch (err) {
-        console.log("Joining room error:", err)
-    }
 
     // send message to joined room
     try {
@@ -81,13 +96,19 @@ io.on('connect', (socket) => {
     try {
         socket.on("getConnectedUsers", (data) => {
             // connectedUsers.push(data)
-            console.log(data, connectedUsers)
-            socket.emit("connectedUsers", connectedUsers);
+            console.log("this is from getConnectedUsers", data, connectedUsers[data.room])
+            socket.emit("connectedUsers", connectedUsers[data.room] || []);
         })
     } catch (err) {
         console.log("Get all connections error:" + err)
     }
-
+    try {
+        socket.on('typing', (data) => {
+            socket.to(data.room).emit('typingResponse', data.message)
+        });
+    } catch (err) {
+        console.log(err)
+    }
 
 })
 httpServer.listen(8000, () => {
